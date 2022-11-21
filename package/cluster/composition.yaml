@@ -9,6 +9,21 @@ spec:
     kind: XCluster
   resources:
     - base:
+        apiVersion: cfg.upbound.io/v1alpha1
+        kind: XIam
+        spec:
+          cloud: aws
+          cloudService: eks
+          config: basic_ibp
+          cloudParameters:
+            region: us-west-2
+          resourceConfig:
+            providerConfigName: default
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: spec.name
+      name: iamForEks
+    - base:
         apiVersion: aws.platformref.upbound.io/v1alpha1
         kind: XNetwork
       patches:

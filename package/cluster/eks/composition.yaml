@@ -11,52 +11,15 @@ spec:
     kind: XEKS
   resources:
     - base:
-        apiVersion: iam.aws.upbound.io/v1beta1
-        kind: Role
-        metadata:
-          labels:
-            role: controlplane
-        spec:
-          forProvider:
-            assumeRolePolicy: |
-              {
-                "Version": "2012-10-17",
-                "Statement": [
-                    {
-                        "Effect": "Allow",
-                        "Principal": {
-                            "Service": [
-                                "eks.amazonaws.com"
-                            ]
-                        },
-                        "Action": [
-                            "sts:AssumeRole"
-                        ]
-                    }
-                ]
-              }
-      name: controlplaneRole
-    - base:
-        apiVersion: iam.aws.upbound.io/v1beta1
-        kind: RolePolicyAttachment
-        spec:
-          forProvider:
-            policyArn: arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
-            roleSelector:
-              matchControllerRef: true
-              matchLabels:
-                role: controlplane
-      name: clusterRolePolicyAttachment
-    - base:
         apiVersion: eks.aws.upbound.io/v1beta1
         kind: Cluster
         spec:
           forProvider:
             region: us-west-2
             roleArnSelector:
-              matchControllerRef: true
-              matchLabels:
-                role: controlplane
+              #matchControllerRef: true
+              #matchLabels:
+                #role: controlplane
             vpcConfig:
               - endpointPrivateAccess: true
                 endpointPublicAccess: true
@@ -64,6 +27,12 @@ spec:
       name: kubernetesCluster
       patches:
           # Change to spec id
+        - fromFieldPath: spec.id
+          toFieldPath: spec.forProvider.roleArnSelector.matchLabels[role]
+          transforms:
+            - type: string
+              string:
+                fmt: "%s-control-plane-role"
         - fromFieldPath: spec.parameters.securityGroupIds
           toFieldPath: spec.forProvider.vpcConfig[0].securityGroupIds
         - fromFieldPath: spec.parameters.subnetIds
@@ -94,65 +63,6 @@ spec:
       connectionDetails:
         - fromConnectionSecretKey: kubeconfig
     - base:
-        apiVersion: iam.aws.upbound.io/v1beta1
-        kind: Role
-        metadata:
-          labels:
-            role: nodegroup
-        spec:
-          forProvider:
-            assumeRolePolicy: |
-              {
-                "Version": "2012-10-17",
-                "Statement": [
-                    {
-                        "Effect": "Allow",
-                        "Principal": {
-                            "Service": [
-                                "ec2.amazonaws.com"
-                            ]
-                        },
-                        "Action": [
-                            "sts:AssumeRole"
-                        ]
-                    }
-                ]
-              }
-      name: nodegroupRole
-    - base:
-        apiVersion: iam.aws.upbound.io/v1beta1
-        kind: RolePolicyAttachment
-        spec:
-          forProvider:
-            policyArn: arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
-            roleSelector:
-              matchControllerRef: true
-              matchLabels:
-                role: nodegroup
-      name: workerNodeRolePolicyAttachment
-    - base:
-        apiVersion: iam.aws.upbound.io/v1beta1
-        kind: RolePolicyAttachment
-        spec:
-          forProvider:
-            policyArn: arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
-            roleSelector:
-              matchControllerRef: true
-              matchLabels:
-                role: nodegroup
-      name: cniRolePolicyAttachment
-    - base:
-        apiVersion: iam.aws.upbound.io/v1beta1
-        kind: RolePolicyAttachment
-        spec:
-          forProvider:
-            policyArn: arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
-            roleSelector:
-              matchControllerRef: true
-              matchLabels:
-                role: nodegroup
-      name: containerRegistryRolePolicyAttachment
-    - base:
         apiVersion: eks.aws.upbound.io/v1beta1
         kind: NodeGroup
         spec:
@@ -161,9 +71,9 @@ spec:
             clusterNameSelector:
               matchControllerRef: true
             nodeRoleArnSelector:
-              matchControllerRef: true
-              matchLabels:
-                role: nodegroup
+              #matchControllerRef: true
+              #matchLabels:
+                #role: nodegroup
             subnetIdSelector:
               matchLabels:
                 access: public
@@ -175,6 +85,12 @@ spec:
               - t3.medium
       name: nodeGroupPublic
       patches:
+        - fromFieldPath: spec.id
+          toFieldPath: spec.forProvider.nodeRoleArnSelector.matchLabels[role]
+          transforms:
+            - type: string
+              string:
+                fmt: "%s-node-group-role"
         - fromFieldPath: spec.parameters.nodes.count
           toFieldPath: spec.forProvider.scalingConfig[0].desiredSize
         - fromFieldPath: spec.parameters.nodes.size
